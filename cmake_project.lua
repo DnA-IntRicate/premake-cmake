@@ -118,14 +118,14 @@ function m.generate(prj)
 		-- include dirs
 
 		if #cfg.sysincludedirs > 0 then
-			_p(1, 'target_include_directories("%s" SYSTEM PRIVATE', prj.name)
+			_p(1, 'target_include_directories("%s" SYSTEM PUBLIC', prj.name)
 			for _, includedir in ipairs(cfg.sysincludedirs) do
 				_x(2, '%s', includedir)
 			end
 			_p(1, ')')
 		end
 		if #cfg.includedirs > 0 then
-			_p(1, 'target_include_directories("%s" PRIVATE', prj.name)
+			_p(1, 'target_include_directories("%s" PUBLIC', prj.name)
 			for _, includedir in ipairs(cfg.includedirs) do
 				_x(2, '%s', includedir)
 			end
@@ -134,15 +134,15 @@ function m.generate(prj)
 
 		if #cfg.forceincludes > 0 then
 			_p(1, 'if (MSVC)')
-			_p(2, 'target_compile_options("%s" PRIVATE %s)', prj.name, table.implode(p.tools.msc.getforceincludes(cfg), "", "", " "))
+			_p(2, 'target_compile_options("%s" PUBLIC %s)', prj.name, table.implode(p.tools.msc.getforceincludes(cfg), "", "", " "))
 			_p(1, 'else()')
-			_p(2, 'target_compile_options("%s" PRIVATE %s)', prj.name, table.implode(p.tools.gcc.getforceincludes(cfg), "", "", " "))
+			_p(2, 'target_compile_options("%s" PUBLIC %s)', prj.name, table.implode(p.tools.gcc.getforceincludes(cfg), "", "", " "))
 			_p(1, 'endif()')
 		end
 
 		-- defines
 		if #cfg.defines > 0 then
-			_p(1, 'target_compile_definitions("%s" PRIVATE', prj.name)
+			_p(1, 'target_compile_definitions("%s" PUBLIC', prj.name)
 			for _, define in ipairs(cfg.defines) do
 				_p(2, '%s', p.esc(define):gsub(' ', '\\ '))
 			end
@@ -151,7 +151,7 @@ function m.generate(prj)
 
 		-- lib dirs
 		if #cfg.libdirs > 0 then
-			_p(1, 'target_link_directories("%s" PRIVATE', prj.name)
+			_p(1, 'target_link_directories("%s" PUBLIC', prj.name)
 			for _, libdir in ipairs(cfg.libdirs) do
 				_p(2, '%s', libdir)
 			end
@@ -193,14 +193,17 @@ function m.generate(prj)
 
 		-- setting link options
 		if #cfg.linkoptions > 0 then
+			_p('if(CMAKE_BUILD_TYPE STREQUAL %s)', cmake.cfgname(cfg))
+			_p(1, 'set_target_properties("%s" PROPERTIES LINK_FLAGS "%s")', prj.name, all_link_options)
 			_p(1, 'set(_TARGET_LINK_FLAGS %s)', table.concat(cfg.linkoptions, ' '))
 			_p(1, 'string(REPLACE ";" " " _TARGET_LINK_FLAGS "${_TARGET_COMPILE_FLAGS}")')
 			_p(1, 'set_property(TARGET "%s" PROPERTY LINK_FLAGS ${_TARGET_LINK_FLAGS})', prj.name)
 			_p(1, 'unset(_TARGET_LINK_FLAGS)')
+			_p('endif()')
 		end
 
 		if #toolset.getcflags(cfg) > 0 or #toolset.getcxxflags(cfg) > 0 then
-			_p(1, 'target_compile_options("%s" PRIVATE', prj.name)
+			_p(1, 'target_compile_options("%s" PUBLIC', prj.name)
 
 			for _, flag in ipairs(toolset.getcflags(cfg)) do
 				_p(2, '$<$<COMPILE_LANGUAGE:C>:%s>', flag)
